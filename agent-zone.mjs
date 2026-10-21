@@ -138,6 +138,26 @@ for (const path of git('ls-files', '--others', '--exclude-standard').split('\n')
   files.push({ path, added: lines, deleted: 0, untracked: true });
 }
 
+// Lockfiles, generated code, snapshots and build output change size without anyone
+// writing them. They still decide the zone but do not count toward the line limit.
+// Files marked linguist-generated in .gitattributes are treated the same way.
+const ignorePatterns = (config.ignore ?? []).map(globToRegExp);
+const generatedByAttribute = new Set();
+if (files.length) {
+  const out = execFileSync('git', ['check-attr', '--stdin', 'linguist-generated'], {
+    input: files.map((f) => f.path).join('\n') + '\n',
+    encoding: 'utf8',
+  });
+  for (const line of out.split('\n')) {
+    const match = line.match(/^(.*): linguist-generated: (true|set)$/);
+    if (match) generatedByAttribute.add(match[1]);
+  }
+}
+for (const f of files) {
+  f.ignored = ignorePatterns.some((r) => r.test(f.path)) || generatedByAttribute.has(f.path);
+}
+const counted = (f) => (f.ignored ? 0 : f.added + f.deleted);
+
 const perZone = {
   core: { files: 0, lines: 0 },
   middle: { files: 0, lines: 0 },
@@ -147,21 +167,27 @@ let zone = null;
 for (const f of files) {
   f.zone = zoneFor(f.path);
   perZone[f.zone].files += 1;
-  perZone[f.zone].lines += f.added + f.deleted;
+  perZone[f.zone].lines += counted(f);
   if (!zone || RANK[f.zone] > RANK[zone]) zone = f.zone;
 }
 
-const totalLines = files.reduce((sum, f) => sum + f.added + f.deleted, 0);
+const ignoredFiles = files.filter((f) => f.ignored);
+const ignoredLines = ignoredFiles.reduce((sum, f) => sum + f.added + f.deleted, 0);
+const totalLines = files.reduce((sum, f) => sum + counted(f), 0);
 const limit = zone ? config.zones[zone]?.maxChangedLines : undefined;
 const overLimit = limit !== undefined && totalLines > limit;
 
 if (asJson) {
-  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, totalLines, limit, overLimit, perZone, files }, null, 2));
+  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, totalLines, ignoredLines, limit, overLimit, perZone, files }, null, 2));
 } else if (!zone) {
   console.log(`No changes compared with ${base}.`);
 } else {
   console.log(`Zone: ${NAMES[zone]}`);
   console.log(`Changed lines: ${totalLines}` + (limit !== undefined ? ` (limit ${limit})` : ''));
+  if (ignoredFiles.length) {
+    const n = ignoredFiles.length;
+    console.log(`Not counted: ${ignoredLines} lines in ${n} lockfile${n === 1 ? '' : 's'} or generated file${n === 1 ? '' : 's'}`);
+  }
   if (overLimit) console.log('Too large for this zone. Split the change before opening a PR.');
   console.log('');
   for (const z of ['core', 'middle', 'surface']) {

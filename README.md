@@ -36,7 +36,7 @@ Requires Node 18 or later. Using Codex instead of Claude Code? Move `SKILL.md` t
 
 ## After installing
 
-1. **Zone map.** Replace the example paths in `docs/agent-zones.json` with your own core and surface paths, and adjust `maxChangedLines` for each zone.
+1. **Zone map.** Replace the example paths in `docs/agent-zones.json` with your own core and surface paths, adjust `maxChangedLines` for each zone, and add your own generated files under `ignore`.
 2. **Policy.** Fill in examples and signals for each zone in `docs/agent-review-policy.md`.
 3. **Base branch.** The script compares against `origin/main` by default. If your main branch has another name, pass `--base` and change the `git diff` command in `SKILL.md` to match.
 4. **Code owners.** Add your core paths and their owners to `.github/CODEOWNERS`. Then turn on **Require review from Code Owners** in the branch protection rule (or ruleset) for your main branch. Without that setting, GitHub only requests a review from the owners; it does not require one.
@@ -62,6 +62,7 @@ In Claude Code: `/classify-review`
 - **Surface is explicit.** Only files that match a surface path are surface.
 - **Everything else is middle.** Unknown paths never become surface.
 - **The change takes its highest zone.** One core file makes the whole change core.
+- **Lockfiles and generated files decide the zone but are not counted as lines.** The patterns under `ignore` cover common lockfiles, EF Core migration designers and snapshots, minified files, test snapshots and build output. Files marked `linguist-generated` in `.gitattributes` are treated the same way.
 
 The paths and line limits in `agent-zones.json` are examples. Replace them with your own.
 

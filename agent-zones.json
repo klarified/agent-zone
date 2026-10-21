@@ -1,5 +1,21 @@
 {
   "default": "middle",
+  "ignore": [
+    "**/package-lock.json",
+    "**/yarn.lock",
+    "**/pnpm-lock.yaml",
+    "**/packages.lock.json",
+    "**/*.Designer.cs",
+    "**/*ModelSnapshot.cs",
+    "**/*.g.cs",
+    "**/*.generated.*",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/*.snap",
+    "**/__snapshots__/**",
+    "**/dist/**",
+    "**/build/**"
+  ],
   "zones": {
     "core": {
       "paths": [
