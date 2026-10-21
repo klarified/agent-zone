@@ -1,0 +1,4 @@
+# Core: a human who owns the area must approve.
+# Requires "Require review from Code Owners" in branch protection.
+/services/payments/   @[org]/[payments-team]
+/services/auth/       @[org]/[platform-team]

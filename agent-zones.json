@@ -1,0 +1,27 @@
+{
+  "default": "middle",
+  "zones": {
+    "core": {
+      "paths": [
+        "services/payments/**",
+        "services/auth/**",
+        "**/Migrations/**"
+      ],
+      "maxChangedLines": 200
+    },
+    "middle": {
+      "maxChangedLines": 400
+    },
+    "surface": {
+      "paths": [
+        "web/src/components/**",
+        "tools/**",
+        "docs/**",
+        "**/*.Tests/**",
+        "**/*.test.*",
+        "**/*.spec.*"
+      ],
+      "maxChangedLines": 800
+    }
+  }
+}
