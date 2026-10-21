@@ -2,13 +2,15 @@
 
 Give AI-assisted code different review requirements depending on where in the system it lands. A script sets the minimum zone from the changed paths, and a Claude Code skill may raise it but never lower it. By [Klarified](https://klarified.ai).
 
+> **Status: concept.** A starting point for discussing review requirements for AI-assisted code. It has only been tried on small sample repositories, not in a real codebase or CI pipeline. Read the files before installing them, and expect to change them.
+
 ## How it fits together
 
 1. **Zone map** (`docs/agent-zones.json`): which paths are *core* and which are *surface*. Everything else is *middle*.
-2. **Script** (`scripts/agent-zone.mjs`): reads the diff, assigns a zone per file and counts changed lines. Same answer every time, and it runs in CI.
+2. **Script** (`scripts/agent-zone.mjs`): reads the diff, assigns a zone per file and counts changed lines. Deterministic by design, so it can be used as a CI check.
 3. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with the signals that put a change there and the requirements before merge.
 4. **Skill** (`.claude/skills/classify-review/SKILL.md`): applies the policy to the diff, raises the zone when a signal matches, checks for tests and drafts the PR description.
-5. **Guard** (`.github/CODEOWNERS`): branch protection requires a human owner to approve core changes, whether or not anyone ran the skill. This only works with **Require review from Code Owners** turned on (see below).
+5. **Guard** (`.github/CODEOWNERS`): branch protection can require a human owner to approve core changes, whether or not anyone ran the skill. This only works with **Require review from Code Owners** turned on (see below).
 
 ## Install
 
@@ -19,7 +21,7 @@ git clone https://github.com/klarified/agent-zone.git ../agent-zone
 node ../agent-zone/install.mjs
 ```
 
-The installer places the files below and never overwrites existing files (use `--force` to overwrite):
+The installer only copies six files into place. It never overwrites existing files (use `--force` to overwrite) and changes nothing else. Prefer to see first? Copy the files by hand using the table below.
 
 | File in this repo | Installed to |
 |---|---|
