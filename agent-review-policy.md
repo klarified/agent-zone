@@ -20,7 +20,7 @@ This policy describes what is required before AI-assisted code can be merged. Wh
 
 - The developer can explain every part of the diff out loud.
 - Reviewed by a human who owns the area (CODEOWNERS).
-- At most 200 changed lines per PR.
+- At most 200 added lines per PR (deletions do not count).
 - Tests for both the success and the failure path.
 - Agent review complements human review and never replaces approval.
 
@@ -37,7 +37,7 @@ This policy describes what is required before AI-assisted code can be merged. Wh
 
 - Reviewed by a human.
 - Tests that prove the changed behavior.
-- At most 400 changed lines per PR.
+- At most 400 added lines per PR (deletions do not count).
 
 ## Surface
 
@@ -49,7 +49,7 @@ This policy describes what is required before AI-assisted code can be merged. Wh
 
 - Agent review is enough when verification is green.
 - The change is easy to roll back.
-- At most 800 changed lines per PR.
+- At most 800 added lines per PR (deletions do not count).
 
 ## Always
 

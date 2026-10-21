@@ -7,7 +7,7 @@ Give AI-assisted code different review requirements depending on where in the sy
 ## How it fits together
 
 1. **Zone map** (`docs/agent-zones.json`): which paths are *core* and which are *surface*. Everything else is *middle*.
-2. **Script** (`scripts/agent-zone.mjs`): assigns a zone per path, either from the actual diff or, when planning, from the paths you intend to touch (`--paths`). Counts changed lines for the diff. Deterministic by design, so it can be used as a CI check.
+2. **Script** (`scripts/agent-zone.mjs`): assigns a zone per path, either from the actual diff or, when planning, from the paths you intend to touch (`--paths`). Counts added lines for the diff; deleted lines are shown but do not count toward the limit. Deterministic by design, so it can be used as a CI check.
 3. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with the signals that put a change there and the requirements before merge.
 4. **Skill** (`.claude/skills/classify-review/SKILL.md`): runs before the PR. It checks the actual diff, raises the zone when a signal matches, checks for tests and drafts the PR description. When planning, the developer estimates the zone; the skill confirms or corrects it on the real change.
 5. **Guard** (`.github/CODEOWNERS`): branch protection can require a human owner to approve core changes, whether or not anyone ran the skill. This only works with **Require review from Code Owners** turned on (see below).
@@ -36,7 +36,7 @@ Requires Node 18 or later. Using Codex instead of Claude Code? Move `SKILL.md` t
 
 ## After installing
 
-1. **Zone map.** Replace the example paths in `docs/agent-zones.json` with your own core and surface paths, adjust `maxChangedLines` for each zone, and add your own generated files under `ignore`.
+1. **Zone map.** Replace the example paths in `docs/agent-zones.json` with your own core and surface paths, adjust `maxAddedLines` for each zone, and add your own generated files under `ignore`.
 2. **Policy.** Fill in examples and signals for each zone in `docs/agent-review-policy.md`.
 3. **Base branch.** The script compares against `origin/main` by default. If your main branch has another name, pass `--base` and change the `git diff` command in `SKILL.md` to match.
 4. **Code owners.** Add your core paths and their owners to `.github/CODEOWNERS`. Then turn on **Require review from Code Owners** in the branch protection rule (or ruleset) for your main branch. Without that setting, GitHub only requests a review from the owners; it does not require one.

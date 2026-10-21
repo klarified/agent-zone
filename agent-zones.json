@@ -23,10 +23,10 @@
         "services/auth/**",
         "**/Migrations/**"
       ],
-      "maxChangedLines": 200
+      "maxAddedLines": 200
     },
     "middle": {
-      "maxChangedLines": 400
+      "maxAddedLines": 400
     },
     "surface": {
       "paths": [
@@ -37,7 +37,7 @@
         "**/*.test.*",
         "**/*.spec.*"
       ],
-      "maxChangedLines": 800
+      "maxAddedLines": 800
     }
   }
 }

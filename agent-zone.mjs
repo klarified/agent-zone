@@ -106,13 +106,13 @@ if (plannedPaths) {
 
   const planned = plannedPaths.map((path) => ({ path, zone: planZoneFor(path) }));
   const zone = planned.reduce((z, p) => (!z || RANK[p.zone] > RANK[z] ? p.zone : z), null);
-  const limit = config.zones[zone]?.maxChangedLines;
+  const limit = config.zones[zone]?.maxAddedLines;
 
   if (asJson) {
     console.log(JSON.stringify({ mode: 'plan', zone, zoneName: NAMES[zone], limit, paths: planned }, null, 2));
   } else {
     console.log(`Planned zone: ${NAMES[zone]}`);
-    if (limit !== undefined) console.log(`Limit for this zone: ${limit} changed lines. Plan the work to stay under it.`);
+    if (limit !== undefined) console.log(`Limit for this zone: ${limit} added lines. Plan the work to stay under it.`);
     console.log('');
     for (const p of planned) console.log(`  ${NAMES[p.zone].padEnd(8)} ${p.path}`);
   }
@@ -156,34 +156,40 @@ if (files.length) {
 for (const f of files) {
   f.ignored = ignorePatterns.some((r) => r.test(f.path)) || generatedByAttribute.has(f.path);
 }
-const counted = (f) => (f.ignored ? 0 : f.added + f.deleted);
+// Only added lines count toward the limit: they are what a reviewer has to understand.
+// Deleted lines are reported separately so a large removal is still visible.
+const added = (f) => (f.ignored ? 0 : f.added);
+const deleted = (f) => (f.ignored ? 0 : f.deleted);
 
 const perZone = {
-  core: { files: 0, lines: 0 },
-  middle: { files: 0, lines: 0 },
-  surface: { files: 0, lines: 0 },
+  core: { files: 0, added: 0, deleted: 0 },
+  middle: { files: 0, added: 0, deleted: 0 },
+  surface: { files: 0, added: 0, deleted: 0 },
 };
 let zone = null;
 for (const f of files) {
   f.zone = zoneFor(f.path);
   perZone[f.zone].files += 1;
-  perZone[f.zone].lines += counted(f);
+  perZone[f.zone].added += added(f);
+  perZone[f.zone].deleted += deleted(f);
   if (!zone || RANK[f.zone] > RANK[zone]) zone = f.zone;
 }
 
 const ignoredFiles = files.filter((f) => f.ignored);
 const ignoredLines = ignoredFiles.reduce((sum, f) => sum + f.added + f.deleted, 0);
-const totalLines = files.reduce((sum, f) => sum + counted(f), 0);
-const limit = zone ? config.zones[zone]?.maxChangedLines : undefined;
-const overLimit = limit !== undefined && totalLines > limit;
+const addedLines = files.reduce((sum, f) => sum + added(f), 0);
+const deletedLines = files.reduce((sum, f) => sum + deleted(f), 0);
+const limit = zone ? config.zones[zone]?.maxAddedLines : undefined;
+const overLimit = limit !== undefined && addedLines > limit;
 
 if (asJson) {
-  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, totalLines, ignoredLines, limit, overLimit, perZone, files }, null, 2));
+  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, addedLines, deletedLines, ignoredLines, limit, overLimit, perZone, files }, null, 2));
 } else if (!zone) {
   console.log(`No changes compared with ${base}.`);
 } else {
   console.log(`Zone: ${NAMES[zone]}`);
-  console.log(`Changed lines: ${totalLines}` + (limit !== undefined ? ` (limit ${limit})` : ''));
+  console.log(`Added lines: ${addedLines}` + (limit !== undefined ? ` (limit ${limit})` : ''));
+  if (deletedLines) console.log(`Deleted lines: ${deletedLines} (not counted toward the limit)`);
   if (ignoredFiles.length) {
     const n = ignoredFiles.length;
     console.log(`Not counted: ${ignoredLines} lines in ${n} lockfile${n === 1 ? '' : 's'} or generated file${n === 1 ? '' : 's'}`);
@@ -191,8 +197,8 @@ if (asJson) {
   if (overLimit) console.log('Too large for this zone. Split the change before opening a PR.');
   console.log('');
   for (const z of ['core', 'middle', 'surface']) {
-    const { files: n, lines } = perZone[z];
-    if (n) console.log(`  ${NAMES[z].padEnd(8)} ${String(n).padStart(4)} ${n === 1 ? 'file ' : 'files'} ${String(lines).padStart(6)} lines`);
+    const { files: n, added: a, deleted: d } = perZone[z];
+    if (n) console.log(`  ${NAMES[z].padEnd(8)} ${String(n).padStart(4)} ${n === 1 ? 'file ' : 'files'} ${String('+' + a).padStart(7)} ${String('-' + d).padStart(7)}`);
   }
   const coreFiles = files.filter((f) => f.zone === 'core');
   if (coreFiles.length) {
