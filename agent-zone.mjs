@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// Classifies the current change into a risk zone using docs/agent-zones.json.
+// Classifies work into a risk zone using docs/agent-zones.json.
 // Core always wins. Surface applies only to files explicitly listed there.
-// Everything else is middle. The change takes the highest zone among its files.
+// Everything else is middle. The work takes the highest zone among its paths.
+//
+// Two modes:
+//   Before the PR: classifies the actual diff against the base branch.
+//   Planning:      classifies the paths you intend to touch (--paths), before any code exists.
 //
 // Usage:
-//   node scripts/agent-zone.mjs                 # readable summary
+//   node scripts/agent-zone.mjs                 # readable summary of the diff
 //   node scripts/agent-zone.mjs --json          # for the agent
 //   node scripts/agent-zone.mjs --check         # exit 1 if the size limit is exceeded (CI)
+//   node scripts/agent-zone.mjs --paths services/payments web/src/components
 //   node scripts/agent-zone.mjs --base origin/develop --config docs/agent-zones.json
 
 import { execFileSync } from 'node:child_process';
@@ -21,6 +26,21 @@ const base = option('--base', 'origin/main');
 const configPath = option('--config', 'docs/agent-zones.json');
 const asJson = args.includes('--json');
 const check = args.includes('--check');
+
+// Everything after --paths up to the next --option is a planned path.
+let plannedPaths = null;
+const pathsIndex = args.indexOf('--paths');
+if (pathsIndex >= 0) {
+  plannedPaths = [];
+  for (const a of args.slice(pathsIndex + 1)) {
+    if (a.startsWith('--')) break;
+    plannedPaths.push(a);
+  }
+  if (!plannedPaths.length) {
+    console.error('Give at least one path after --paths, for example: --paths services/payments');
+    process.exit(2);
+  }
+}
 
 const RANK = { surface: 1, middle: 2, core: 3 };
 const NAMES = { core: 'Core', middle: 'Middle', surface: 'Surface' };
@@ -70,6 +90,35 @@ function newPath(p) {
   return p;
 }
 
+// Planning mode. A planned path can be a file or a folder. A folder is core if
+// anything inside it is core, so a broad plan is never classified too low.
+if (plannedPaths) {
+  const literalPrefix = (glob) => glob.split(/[*?]/)[0];
+  const coreGlobs = config.zones.core?.paths ?? [];
+  const planZoneFor = (raw) => {
+    const path = raw.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+    const candidates = [path, path + '/x'];
+    if (candidates.some((c) => corePatterns.some((r) => r.test(c)))) return 'core';
+    if (coreGlobs.some((g) => literalPrefix(g).startsWith(path + '/'))) return 'core';
+    if (candidates.some((c) => surfacePatterns.some((r) => r.test(c)))) return 'surface';
+    return config.default ?? 'middle';
+  };
+
+  const planned = plannedPaths.map((path) => ({ path, zone: planZoneFor(path) }));
+  const zone = planned.reduce((z, p) => (!z || RANK[p.zone] > RANK[z] ? p.zone : z), null);
+  const limit = config.zones[zone]?.maxChangedLines;
+
+  if (asJson) {
+    console.log(JSON.stringify({ mode: 'plan', zone, zoneName: NAMES[zone], limit, paths: planned }, null, 2));
+  } else {
+    console.log(`Planned zone: ${NAMES[zone]}`);
+    if (limit !== undefined) console.log(`Limit for this zone: ${limit} changed lines. Plan the work to stay under it.`);
+    console.log('');
+    for (const p of planned) console.log(`  ${NAMES[p.zone].padEnd(8)} ${p.path}`);
+  }
+  process.exit(0);
+}
+
 const mergeBase = git('merge-base', base, 'HEAD');
 const files = [];
 
@@ -107,7 +156,7 @@ const limit = zone ? config.zones[zone]?.maxChangedLines : undefined;
 const overLimit = limit !== undefined && totalLines > limit;
 
 if (asJson) {
-  console.log(JSON.stringify({ base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, totalLines, limit, overLimit, perZone, files }, null, 2));
+  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, totalLines, limit, overLimit, perZone, files }, null, 2));
 } else if (!zone) {
   console.log(`No changes compared with ${base}.`);
 } else {
