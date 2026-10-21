@@ -6,8 +6,9 @@ Give AI-assisted code different review requirements depending on where in the sy
 
 1. **Zone map** (`docs/agent-zones.json`): which paths are *core* and which are *surface*. Everything else is *middle*.
 2. **Script** (`scripts/agent-zone.mjs`): reads the diff, assigns a zone per file and counts changed lines. Same answer every time, and it runs in CI.
-3. **Skill** (`.claude/skills/classify-review/SKILL.md`): reads the policy, looks for risk the paths miss, checks for tests and drafts the PR description.
-4. **Guard** (`.github/CODEOWNERS`): branch protection requires a human owner to approve core changes, whether or not anyone ran the skill.
+3. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with the signals that put a change there and the requirements before merge.
+4. **Skill** (`.claude/skills/classify-review/SKILL.md`): applies the policy to the diff, raises the zone when a signal matches, checks for tests and drafts the PR description.
+5. **Guard** (`.github/CODEOWNERS`): branch protection requires a human owner to approve core changes, whether or not anyone ran the skill.
 
 ## Install
 

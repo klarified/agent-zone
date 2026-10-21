@@ -10,15 +10,8 @@ This skill helps the developer open a PR the reviewer can trust. It does not rev
 ## Steps
 
 1. **Set the floor.** Run `node scripts/agent-zone.mjs --json`. The script's zone is the lowest allowed. You may raise the zone, never lower it.
-2. **Read the policy** in `docs/agent-review-policy.md` for that zone.
-3. **Look for risk the paths miss.** Read the diff with `git diff $(git merge-base origin/main HEAD)`. Raise to core if the change touches any of these:
-   - sign-in, authorization, sessions or tokens
-   - personal data, especially sensitive personal data
-   - payments, fees or invoicing
-   - secrets, keys or production configuration
-   - database migrations or deletion of data
-
-   Raise to middle if the change affects a public API, a shared contract or business logic.
+2. **Read the policy** in `docs/agent-review-policy.md`. Each zone lists its signals and its requirements. The policy is the team's definition of the zones; do not add signals of your own.
+3. **Look for risk the paths miss.** Read the diff with `git diff $(git merge-base origin/main HEAD)` and compare it with the signals of every zone above the floor. If any signal matches, raise the change to that zone and note which signal matched. Use the requirements of the final zone from here on.
 4. **Check tests.** Changed behavior needs a test that would have failed without the change. If one is missing, say so plainly.
 5. **Check the size.** If the script reports `overLimit: true`, first suggest how to split the change into smaller PRs.
 6. **Draft the PR description** in the format below.
