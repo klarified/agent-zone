@@ -15,7 +15,7 @@ Give AI-assisted changes review requirements that match their risk. The team wri
 
 The minimum is two files:
 
-1. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with examples, the signals that put a change there, and what is required before merge. Write this together.
+1. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with examples, the signals that put a change there, and what is required before merge. Write this together. If you discussed it on a whiteboard, [`prompts/policy-from-whiteboard.md`](prompts/policy-from-whiteboard.md) has a prompt that turns a photo of the board into a first draft.
 2. **Skill** (`.claude/skills/classify-review/SKILL.md`): runs before the PR. It reads the policy, classifies the actual diff, checks for meaningful tests and drafts the PR description. In the core zone it asks the developer questions instead of explaining the change for them.
 
 Add these later, if they prove useful:
