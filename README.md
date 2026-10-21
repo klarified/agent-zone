@@ -8,7 +8,7 @@ Give AI-assisted code different review requirements depending on where in the sy
 2. **Script** (`scripts/agent-zone.mjs`): reads the diff, assigns a zone per file and counts changed lines. Same answer every time, and it runs in CI.
 3. **Policy** (`docs/agent-review-policy.md`): the team's plain-text definition of each zone, with the signals that put a change there and the requirements before merge.
 4. **Skill** (`.claude/skills/classify-review/SKILL.md`): applies the policy to the diff, raises the zone when a signal matches, checks for tests and drafts the PR description.
-5. **Guard** (`.github/CODEOWNERS`): branch protection requires a human owner to approve core changes, whether or not anyone ran the skill.
+5. **Guard** (`.github/CODEOWNERS`): branch protection requires a human owner to approve core changes, whether or not anyone ran the skill. This only works with **Require review from Code Owners** turned on (see below).
 
 ## Install
 
@@ -32,6 +32,14 @@ The installer places the files below and never overwrites existing files (use `-
 
 Requires Node 18 or later. Using Codex instead of Claude Code? Move `SKILL.md` to `.agents/skills/classify-review/`.
 
+## After installing
+
+1. **Zone map.** Replace the example paths in `docs/agent-zones.json` with your own core and surface paths, and adjust `maxChangedLines` for each zone.
+2. **Policy.** Fill in examples and signals for each zone in `docs/agent-review-policy.md`.
+3. **Base branch.** The script compares against `origin/main` by default. If your main branch has another name, pass `--base` and change the `git diff` command in `SKILL.md` to match.
+4. **Code owners.** Add your core paths and their owners to `.github/CODEOWNERS`. Then turn on **Require review from Code Owners** in the branch protection rule (or ruleset) for your main branch. Without that setting, GitHub only requests a review from the owners; it does not require one.
+5. **Try it.** On a branch with changes, run `node scripts/agent-zone.mjs` and check that the zone matches what the team would have chosen.
+
 ## Run
 
 ```
@@ -40,6 +48,8 @@ node scripts/agent-zone.mjs --json     # what the skill reads
 node scripts/agent-zone.mjs --check    # exits 1 if the change is too large for its zone
 node scripts/agent-zone.mjs --base origin/develop --config docs/agent-zones.json
 ```
+
+Without `--base`, the script compares against `origin/main`. Uncommitted changes and new files count too.
 
 In Claude Code: `/classify-review`
 
