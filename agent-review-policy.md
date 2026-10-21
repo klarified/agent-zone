@@ -2,7 +2,7 @@
 
 Version 0.1 · [date] · Owner: [name]
 
-This policy describes what is required before AI-assisted code can be merged. Which paths belong to which zone is defined in `docs/agent-zones.json`. A change can also be raised to a higher zone by the signals listed under each zone, whatever its paths. When in doubt, the higher zone applies.
+This policy describes what is required before AI-assisted code can be merged. It does not matter whether a human or an agent wrote the code; what matters is how well it must be understood and how it is reviewed. Each zone has examples and signals. If the team also uses `docs/agent-zones.json`, it maps paths to a minimum zone. When in doubt, the higher zone applies.
 
 ## Core
 
@@ -20,8 +20,8 @@ This policy describes what is required before AI-assisted code can be merged. Wh
 
 - The developer can explain every part of the diff out loud.
 - Reviewed by a human who owns the area (CODEOWNERS).
-- At most 200 added lines per PR (deletions do not count).
-- Tests for both the success and the failure path.
+- [Optional] At most [N] added lines of app code per PR. Tests, docs and generated files do not count.
+- Tests for both the success and the failure path. A test counts only if it would fail without the change.
 - Agent review complements human review and never replaces approval.
 
 ## Middle
@@ -37,19 +37,19 @@ This policy describes what is required before AI-assisted code can be merged. Wh
 
 - Reviewed by a human.
 - Tests that prove the changed behavior.
-- At most 400 added lines per PR (deletions do not count).
+- [Optional] At most [N] added lines of app code per PR.
 
 ## Surface
 
 **Examples:** [fill in]
 
-**Signals.** None. Only paths listed under `surface` in `docs/agent-zones.json` belong here, and signals never move a change down to this zone.
+**Signals.** None. A change belongs here only if it fits the examples above and no signal from a higher zone matches. Signals never move a change down to this zone.
 
 **Requirements:**
 
 - Agent review is enough when verification is green.
 - The change is easy to roll back.
-- At most 800 added lines per PR (deletions do not count).
+- [Optional] At most [N] added lines of app code per PR.
 
 ## Always
 

@@ -9,19 +9,20 @@ This skill helps the developer open a PR the reviewer can trust. It does not rev
 
 ## Steps
 
-1. **Read the policy** in `docs/agent-review-policy.md`. Each zone lists its signals and its requirements. The policy is the team's definition of the zones; do not add signals of your own.
-2. **Set the floor.** Run `node scripts/agent-zone.mjs --json`. The script's zone is the lowest allowed. You may raise it, never lower it. If it reports `"zone": null`, there are no changes yet; say so and stop.
-3. **Check the signals.** Read the diff with `git diff $(git merge-base origin/main HEAD)` and compare it with the signals of every zone above the floor. If any signal matches, raise the zone and note which signal matched.
-4. **Compare with the developer's estimate.** If the developer expected a lower zone, say so clearly.
-5. **Check tests.** Changed behavior needs a test that would have failed without the change. If one is missing, say so plainly.
-6. **Check the size.** If the script reports `overLimit: true`, first suggest how to split the change into smaller PRs.
-7. **Draft the PR description** in the format below.
+1. **Read the policy** in `docs/agent-review-policy.md`. Each zone lists its examples, its signals and its requirements. The policy is the team's definition of the zones; do not add signals of your own.
+2. **Check that there is a change.** Run `git diff --stat $(git merge-base origin/main HEAD)` and `git status --short`. If nothing has changed, say so and stop.
+3. **Set the floor, if the team uses one.** If both `scripts/agent-zone.mjs` and `docs/agent-zones.json` exist, run `node scripts/agent-zone.mjs --json`. Its zone is the lowest allowed: you may raise it, never lower it. If they do not exist, there is no floor and you classify from the policy alone.
+4. **Classify from the policy.** Read the diff with `git diff $(git merge-base origin/main HEAD)` and compare it with the examples and signals of each zone. Choose the highest zone that matches. A change is surface only if it fits the surface examples and no signal from a higher zone matches. Say which example or signal decided it.
+5. **Compare with the developer's estimate.** If the developer expected a lower zone, say so clearly.
+6. **Check tests.** Changed behavior needs a test that would have failed without the change. If one is missing, say so plainly. Also point out tests that only exercise mocks, generated fixtures or assertions that cannot fail.
+7. **Check the size.** If the policy sets a size limit for the zone, or the script reports `overLimit: true`, first suggest how to split the change into smaller PRs. Only app code counts; tests, docs and generated files do not.
+8. **Draft the PR description** in the format below.
 
 ## PR description format
 
 ```markdown
 ## Zone: <Core | Middle | Surface>
-<One sentence on why. If you raised the zone: what in the diff made you do it.>
+<One sentence on why: the example or signal that decided it.>
 
 ### Policy requirements
 - [ ] <the requirements for the zone, copied from the policy>
@@ -39,6 +40,6 @@ Do not write the explanation for the developer. Instead, ask 3–5 concrete ques
 
 ## Rules
 
-- Never lower the zone, even if asked to.
+- Never lower the zone, whether below the script's floor or because someone asks.
+- When unsure between two zones, choose the higher one and say what made you unsure.
 - Never claim something is tested unless you have seen the tests run.
-- If the script cannot run, say so and treat the change as at least middle.

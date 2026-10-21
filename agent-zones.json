@@ -1,6 +1,15 @@
 {
   "default": "middle",
-  "ignore": [
+  "notAppCode": [
+    "**/*.Tests/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/fixtures/**",
+    "**/__snapshots__/**",
+    "**/*.snap",
+    "**/*.md",
+    "docs/**",
     "**/package-lock.json",
     "**/yarn.lock",
     "**/pnpm-lock.yaml",
@@ -11,8 +20,6 @@
     "**/*.generated.*",
     "**/*.min.js",
     "**/*.min.css",
-    "**/*.snap",
-    "**/__snapshots__/**",
     "**/dist/**",
     "**/build/**"
   ],
@@ -22,12 +29,9 @@
         "services/payments/**",
         "services/auth/**",
         "**/Migrations/**"
-      ],
-      "maxAddedLines": 200
+      ]
     },
-    "middle": {
-      "maxAddedLines": 400
-    },
+    "middle": {},
     "surface": {
       "paths": [
         "web/src/components/**",
@@ -36,8 +40,7 @@
         "**/*.Tests/**",
         "**/*.test.*",
         "**/*.spec.*"
-      ],
-      "maxAddedLines": 800
+      ]
     }
   }
 }

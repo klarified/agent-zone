@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Installs agent-zone into the repository you are standing in.
+// Installs the agent-zone sketch into the repository you are standing in.
+// The files are a starting point to read and adapt, not finished code.
 // Run from the repository root:  node ../agent-zone/install.mjs
 // Existing files are never overwritten. Pass --force to overwrite them.
 

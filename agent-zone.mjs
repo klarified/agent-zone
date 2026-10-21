@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// SKETCH, NOT PRODUCTION CODE. This file shows one way to put a deterministic floor
+// under an agent's judgement. It has only been run on small sample repositories.
+// Read it, discuss it, and rewrite it for your own codebase and stack.
+//
 // Classifies work into a risk zone using docs/agent-zones.json.
 // Core always wins. Surface applies only to files explicitly listed there.
 // Everything else is middle. The work takes the highest zone among its paths.
@@ -10,7 +14,7 @@
 // Usage:
 //   node scripts/agent-zone.mjs                 # readable summary of the diff
 //   node scripts/agent-zone.mjs --json          # for the agent
-//   node scripts/agent-zone.mjs --check         # exit 1 if the size limit is exceeded (CI)
+//   node scripts/agent-zone.mjs --check         # exit 1 if a zone's maxAddedLines is exceeded (CI)
 //   node scripts/agent-zone.mjs --paths services/payments web/src/components
 //   node scripts/agent-zone.mjs --base origin/develop --config docs/agent-zones.json
 
@@ -138,10 +142,11 @@ for (const path of git('ls-files', '--others', '--exclude-standard').split('\n')
   files.push({ path, added: lines, deleted: 0, untracked: true });
 }
 
-// Lockfiles, generated code, snapshots and build output change size without anyone
-// writing them. They still decide the zone but do not count toward the line limit.
-// Files marked linguist-generated in .gitattributes are treated the same way.
-const ignorePatterns = (config.ignore ?? []).map(globToRegExp);
+// Only app code counts toward a size limit. Tests, fixtures, docs, lockfiles and
+// generated files are listed under notAppCode: they still decide the zone, but their
+// lines are reported separately. Files marked linguist-generated in .gitattributes
+// are treated as not app code too.
+const notAppCodePatterns = (config.notAppCode ?? []).map(globToRegExp);
 const generatedByAttribute = new Set();
 if (files.length) {
   const out = execFileSync('git', ['check-attr', '--stdin', 'linguist-generated'], {
@@ -154,12 +159,12 @@ if (files.length) {
   }
 }
 for (const f of files) {
-  f.ignored = ignorePatterns.some((r) => r.test(f.path)) || generatedByAttribute.has(f.path);
+  f.appCode = !(notAppCodePatterns.some((r) => r.test(f.path)) || generatedByAttribute.has(f.path));
 }
-// Only added lines count toward the limit: they are what a reviewer has to understand.
+// Only added app code counts toward a limit: it is what a reviewer has to understand.
 // Deleted lines are reported separately so a large removal is still visible.
-const added = (f) => (f.ignored ? 0 : f.added);
-const deleted = (f) => (f.ignored ? 0 : f.deleted);
+const added = (f) => (f.appCode ? f.added : 0);
+const deleted = (f) => (f.appCode ? f.deleted : 0);
 
 const perZone = {
   core: { files: 0, added: 0, deleted: 0 },
@@ -175,24 +180,23 @@ for (const f of files) {
   if (!zone || RANK[f.zone] > RANK[zone]) zone = f.zone;
 }
 
-const ignoredFiles = files.filter((f) => f.ignored);
-const ignoredLines = ignoredFiles.reduce((sum, f) => sum + f.added + f.deleted, 0);
+const otherFiles = files.filter((f) => !f.appCode);
+const notAppCodeLines = otherFiles.reduce((sum, f) => sum + f.added + f.deleted, 0);
 const addedLines = files.reduce((sum, f) => sum + added(f), 0);
 const deletedLines = files.reduce((sum, f) => sum + deleted(f), 0);
 const limit = zone ? config.zones[zone]?.maxAddedLines : undefined;
 const overLimit = limit !== undefined && addedLines > limit;
 
 if (asJson) {
-  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, addedLines, deletedLines, ignoredLines, limit, overLimit, perZone, files }, null, 2));
+  console.log(JSON.stringify({ mode: 'diff', base, mergeBase, zone, zoneName: zone ? NAMES[zone] : null, addedLines, deletedLines, notAppCodeLines, limit, overLimit, perZone, files }, null, 2));
 } else if (!zone) {
   console.log(`No changes compared with ${base}.`);
 } else {
   console.log(`Zone: ${NAMES[zone]}`);
-  console.log(`Added lines: ${addedLines}` + (limit !== undefined ? ` (limit ${limit})` : ''));
-  if (deletedLines) console.log(`Deleted lines: ${deletedLines} (not counted toward the limit)`);
-  if (ignoredFiles.length) {
-    const n = ignoredFiles.length;
-    console.log(`Not counted: ${ignoredLines} lines in ${n} lockfile${n === 1 ? '' : 's'} or generated file${n === 1 ? '' : 's'}`);
+  console.log(`App code: +${addedLines} -${deletedLines}` + (limit !== undefined ? ` (limit ${limit} added)` : ''));
+  if (otherFiles.length) {
+    const n = otherFiles.length;
+    console.log(`Not app code: ${notAppCodeLines} lines in ${n} file${n === 1 ? '' : 's'} (tests, docs, generated)`);
   }
   if (overLimit) console.log('Too large for this zone. Split the change before opening a PR.');
   console.log('');
